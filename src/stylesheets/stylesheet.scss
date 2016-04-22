@@ -3,15 +3,11 @@ body {
 
 }
 .box {
-	width: 400px;
-	height: 150px;
 	border: 1px solid $light-grey;
 	border-radius: 10px;
 	position: absolute;
 }
 .dropdown {
-	width: 200px;
-	height: 20px;
 	border: 1px solid $light-grey;
 	position: relative;
 	box-sizing: border-box;

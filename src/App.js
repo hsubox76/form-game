@@ -10,7 +10,10 @@ import { COMMANDS } from './constants';
 function mapStateToProps(state) {
 	return {
 		charPosition: state.charPosition,
-		keys: state.keys
+		keys: state.keys,
+		animation: state.animation,
+		boxes: state.boxes,
+		walls: state.walls
 	};
 }
 
@@ -36,6 +39,10 @@ class App extends Component {
 	constructor() {
 		super();
 		this.handleKeyUpDown = this.handleKeyUpDown.bind(this);
+		this.jump = this.jump.bind(this);
+		this.count = 0;
+		this.startTime = 0;
+		this.endTime = 0;
 	}
 	handleKeyUpDown(e) {
 		const props = this.props;
@@ -49,6 +56,14 @@ class App extends Component {
 		}
 		actions.moveChar(props.keys);
 	}
+	jump() {
+		const props = this.props;
+		if (props.animation.frame < props.animation.maxFrame) {
+			props.actions.continueJump(props.animation, props.keys);
+			this.count ++;
+			requestAnimationFrame(this.jump);
+		}
+	}
 	componentDidMount() {
     	document.addEventListener('keydown', this.handleKeyUpDown, false);
     	document.addEventListener('keyup', this.handleKeyUpDown, false);
@@ -57,11 +72,17 @@ class App extends Component {
     	document.removeEventListener('keydown', this.handleKeyUpDown, false);
     	document.removeEventListener('keyup', this.handleKeyUpDown, false);
 	}
+	componentDidUpdate() {
+		if (this.props.keys[COMMANDS.JUMP]) {
+			this.props.actions.triggerJump();
+			requestAnimationFrame(this.jump);
+		}
+	}
 	render() {
 		const props = this.props;
 		return (
 			<div>
-		      <BoxOne />
+		      <BoxOne data={props.boxes[1]} />
 		  	</div>
 		);
 	}

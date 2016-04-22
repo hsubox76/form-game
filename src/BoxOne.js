@@ -6,7 +6,8 @@ import * as Actions from './actions';
 
 function mapStateToProps(state) {
 	return {
-		charPosition: state.charPosition
+		charPosition: state.charPosition,
+		elements: state.elements
 	};
 }
 
@@ -16,31 +17,40 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-class App extends Component {
-	constructor() {
-		super();
+class BoxOne extends Component {
+	constructor(props) {
+		super(props);
+		props.actions.updateWalls(props.data);
 	}
-	componentWillMount() {
-		this.props.actions.updateWalls();
+	componentWillReceiveProps(nextProps) {
+		if (nextProps.data.boxId === nextProps.charPosition.boxId
+			&& nextProps.charPosition.boxId !== this.props.charPosition.boxId) { // char in box
+			this.props.actions.updateWalls(nextProps.data);
+		}
 	}
 	render() {
 		const props = this.props;
+		const style = {
+			width: props.data.width + 'px',
+			height: props.data.height + 'px'
+		}
 		return (
-	      <div className="box">
+	      <div className="box" style={style}>
 			<span
 				style={{
 					top: props.charPosition.y + 'px',
 					left: props.charPosition.x + 'px'
 				}}
 				className="char fa fa-male"></span>
-	      	<Dropdown />
+	      	<Dropdown data={props.elements[0]} />
 	      </div>
 		);
 	}
 }
 
-App.propTypes = {
-	charPosition: React.PropTypes.object
+BoxOne.propTypes = {
+	charPosition: React.PropTypes.object,
+	data: React.PropTypes.object
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(BoxOne);
