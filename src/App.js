@@ -5,7 +5,7 @@ import './stylesheets/stylesheet.scss';
 import 'font-awesome/css/font-awesome.css';
 import BoxOne from './BoxOne';
 import * as Actions from './actions';
-import { COMMANDS } from './constants';
+import { COMMANDS, CHAR_HEIGHT } from './constants';
 
 function mapStateToProps(state) {
 	return {
@@ -40,6 +40,7 @@ class App extends Component {
 		super();
 		this.handleKeyUpDown = this.handleKeyUpDown.bind(this);
 		this.jump = this.jump.bind(this);
+		this.fall = this.fall.bind(this);
 		this.count = 0;
 		this.startTime = 0;
 		this.endTime = 0;
@@ -55,13 +56,22 @@ class App extends Component {
 			}
 		}
 		actions.moveChar(props.keys);
+		this.fall();
 	}
 	jump() {
 		const props = this.props;
 		if (props.animation.frame < props.animation.maxFrame) {
 			props.actions.continueJump(props.animation, props.keys);
-			this.count ++;
 			requestAnimationFrame(this.jump);
+		}
+	}
+	fall() {
+		const props = this.props;
+		const thisBox = _.find(props.boxes, {boxId: props.charPosition.boxId});
+		if (this.count < 500 && props.charPosition.y + CHAR_HEIGHT + 1 < thisBox.height) {
+			props.actions.continueFall();
+			this.count++;
+			requestAnimationFrame(this.fall);
 		}
 	}
 	componentDidMount() {

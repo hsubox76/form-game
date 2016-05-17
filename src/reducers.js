@@ -6,9 +6,16 @@ const COMMANDS = CONSTANTS.COMMANDS;
 const STEP_SIZE = CONSTANTS.STEP_SIZE;
 const CHAR_WIDTH = CONSTANTS.CHAR_WIDTH;
 const CHAR_HEIGHT = CONSTANTS.CHAR_HEIGHT;
+const GRAVITY_STEP_SIZE = CONSTANTS.GRAVITY_STEP_SIZE;
+
+function charInRange(char, wall) {
+	return ((char[0] <= wall[0] && wall[0] <= char[1])
+			|| (char[0] >= wall[0] && char[1] <= wall[1])
+			|| (char[0] <= wall[1] && char[1] >= wall[1]));
+}
 
 function getWillCollide(wallsList, newPos) {
-	const collisions = {};
+	const collisions = { x: null, y: null };
 	const charBounds = {
 		top: newPos.y,
 		bottom: newPos.y + CHAR_HEIGHT,
@@ -16,33 +23,24 @@ function getWillCollide(wallsList, newPos) {
 		right: newPos.x + CHAR_WIDTH
 	};
 	_.forEach(wallsList, (wall) => {
-			console.log(wall);
+			// console.log(wall);
 			// console.log('a', charBounds.left <= wall.x);
 			// console.log('b', charBounds.right >= wall.x);
 			if (_.has(wall, 'x')
 				&& charBounds.left <= wall.x
 				&& charBounds.right >= wall.x) {
-				// console.log('1', (charBounds.top <= wall.y0 && wall.y0 <= charBounds.bottom));
-				// console.log('2', (charBounds.top >= wall.y0 && charBounds.bottom <= wall.y1));
-				// console.log('3', (charBounds.top <= wall.y1 && charBounds.bottom >= wall.y1));
-				if ((charBounds.top <= wall.y0 && wall.y0 <= charBounds.bottom)
-					|| (charBounds.top >= wall.y0 && charBounds.bottom <= wall.y1)
-					|| (charBounds.top <= wall.y1 && charBounds.bottom >= wall.y1))
-				collisions.x = true;
+				if (charInRange([charBounds.top, charBounds.bottom], [wall.y0, wall.y1])) {
+					collisions.x = true;
+				}
 			}
 			// console.log('c', charBounds.top <= wall.y);
 			// console.log('d', charBounds.bottom >= wall.y);
 			if (_.has(wall, 'y')
 				&& charBounds.top <= wall.y
 				&& charBounds.bottom >= wall.y) {
-				console.log(charBounds);
-				console.log('4', (charBounds.left <= wall.x0 && wall.x0 <= charBounds.right));
-				console.log('5', (charBounds.left >= wall.x0 && charBounds.right <= wall.x1));
-				console.log('6', (charBounds.left <= wall.x1 && charBounds.right >= wall.x1));
-				if ((charBounds.left <= wall.x0 && wall.x0 <= charBounds.right)
-					|| (charBounds.left >= wall.x0 && charBounds.right <= wall.x1)
-					|| (charBounds.left <= wall.x1 && charBounds.right >= wall.x1))
-				collisions.y = true;
+				if (charInRange([charBounds.left, charBounds.right], [wall.x0, wall.x1])) {
+					collisions.y = true;
+				}
 			}
 		});
 	console.log('collisions ', collisions);
@@ -50,9 +48,26 @@ function getWillCollide(wallsList, newPos) {
 }
 
 function charPosition (state = {}, action, wallsList) {
+	let newPos;
 	switch(action.type) {
+		case ACTIONS.CONTINUE_FALL:
+			let fallVelocity = CONSTANTS.GRAVITY_STEP_SIZE;
+			let newY = state.y + fallVelocity;
+			const nearestWallBelow = _(wallsList)
+				.filter((wall) => {
+					return _.has(wall, 'y')
+							&& wall.y > state.y + CHAR_HEIGHT
+							&& charInRange([state.x, state.x + CHAR_WIDTH], [wall.x0, wall.x1]);
+				})
+				.reduce((accumulator, wall) => {
+					return wall.y < accumulator ? wall.y : accumulator;
+				}, Infinity);
+			if (newY + CHAR_HEIGHT >= nearestWallBelow) {
+				newY = nearestWallBelow - 1 - CHAR_HEIGHT;
+			}
+			return _.extend({}, state, {y: newY});
 		case ACTIONS.CONTINUE_JUMP:
-			const newPos = {x: state.x, y: state.y};
+			newPos = {x: state.x, y: state.y};
 			const anim = action.animation;
 			let jumpDirection = null;
 			if (action.keys[COMMANDS.LEFT]) {
@@ -62,7 +77,8 @@ function charPosition (state = {}, action, wallsList) {
 			}
 			let jumpVelocity = CONSTANTS.JUMP_STEP_SIZE
 				* (Math.abs(anim.maxFrame / 2 - anim.frame) / anim.maxFrame);
-			if (anim.frame < anim.maxFrame / 2) {
+			const isFirstHalf = anim.frame < anim.maxFrame / 2;
+			if (isFirstHalf) {
 				newPos.y = state.y - jumpVelocity;
 			} else {
 				newPos.y = state.y + jumpVelocity;
@@ -70,8 +86,13 @@ function charPosition (state = {}, action, wallsList) {
 					newPos.y = anim.startY;
 				}
 			}
-			if (getWillCollide(wallsList, newPos).x) {
-				newPos.x = state.x;
+			const collision = getWillCollide(wallsList, newPos)
+			if (collision.x) {
+				if (isFirstHalf) {
+					newPos.x -= collision.x.bottom;
+				} else {
+					newPos.x = state.x;
+				}
 			}
 			if (getWillCollide(wallsList, newPos).y) {
 				newPos.y = state.y;
@@ -87,14 +108,15 @@ function charPosition (state = {}, action, wallsList) {
 					return command && command !== COMMANDS.JUMP;
 				})
 				.value();
-				const newPos = {x: state.x, y: state.y};
+				newPos = {x: state.x, y: state.y};
+				console.log(newPos);
 				switch (dirCommands[0]) {
-					case COMMANDS.UP:
-						newPos.y = state.y - STEP_SIZE;
-						break;
-					case COMMANDS.DOWN:
-						newPos.y = state.y + STEP_SIZE;
-						break;
+					// case COMMANDS.UP:
+					// 	newPos.y = state.y - STEP_SIZE;
+					// 	break;
+					// case COMMANDS.DOWN:
+					// 	newPos.y = state.y + STEP_SIZE;
+					// 	break;
 					case COMMANDS.RIGHT:
 						newPos.x = state.x + STEP_SIZE;
 						break;
@@ -104,7 +126,7 @@ function charPosition (state = {}, action, wallsList) {
 					default:
 						return state;
 				}
-				const willCollide = getWillCollide(wallsList, newPos);
+				let willCollide = getWillCollide(wallsList, newPos);
 				return willCollide.x || willCollide.y ? state : _.extend({}, state, newPos);
 			}
 		default:

@@ -5,6 +5,7 @@ export const ACTIONS = {
 	REMOVE_COMMAND: 'REMOVE_COMMAND',
 	TRIGGER_JUMP: 'TRIGGER_JUMP',
 	CONTINUE_JUMP: 'CONTINUE_JUMP',
+	CONTINUE_FALL: 'CONTINUE_FALL'
 };
 
 export function moveChar(commands) {
@@ -29,6 +30,10 @@ export function triggerJump() {
 
 export function continueJump(animation, keys) {
 	return {type: ACTIONS.CONTINUE_JUMP, animation, keys};
+}
+
+export function continueFall() {
+	return {type: ACTIONS.CONTINUE_FALL};
 }
 
 export function updateWalls(data) {
